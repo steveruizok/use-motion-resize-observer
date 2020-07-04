@@ -32,12 +32,7 @@ const App = () => {
     initial: { width: 100, height: 100 },
   });
 
-  // Create new motion value based on width motion value
   const background = useTransform(width, [100, 300], ["#52cb9a", "#2d8a9a"]);
-
-  // Should only ever render once
-  const rRenders = React.useRef(0);
-  rRenders.current++;
 
   return <motion.div ref={ref} style={{ background }} />;
 };
