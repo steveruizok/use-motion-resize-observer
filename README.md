@@ -1,13 +1,10 @@
-# use-resize-observer
+# use-motion-resize-observer
 
-<h1 align="center">
-	<br>
-	<img width="250" src="https://raw.githubusercontent.com/ZeeCoder/use-resize-observer/master/media/Logo.png" alt="useMotionResizeObserver">
-	<br>
-    <br>
-</h1>
+A fork of [use-resize-observer](https://github.com/ZeeCoder/use-resize-observer) that uses Motion Values from Framer Motion.
 
-A fork of [use-resize-observer](https://github.com/ZeeCoder/use-resize-observer) that uses Motion Values from Framer Motion. Unlike `useMotionResizeObserver`, the hook will **not** trigger a re-render on all changes to the target element's width and / or height. Instead, it will update the `height` and `width` motion values. You can use these values to drive other changes to `motion` components.
+## What's different?
+
+Unlike `useMotionResizeObserver`, the hook will **not** trigger a re-render on all changes to the target element's width and / or height. Instead, it will update the `height` and `width` motion values. You can use these values to drive other changes to `motion` components.
 
 ## In Action
 
