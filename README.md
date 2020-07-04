@@ -24,19 +24,22 @@ Note that the default builds are not polyfilled! For instructions and alternativ
 
 ```js
 import React from "react";
-import { motion, useMotionValue, useTransform } from "framer-motion";
 import useMotionResizeObserver from "use-motion-resize-observer";
+import { motion, useTransform } from "framer-motion";
 
 const App = () => {
-  const { ref, width, height } = useMotionResizeObserver();
-  const background = useTransform(width, [100, 300], ["#93c7e3", "#39169c"]);
+  const { ref, width, height } = useMotionResizeObserver({
+    initial: { width: 100, height: 100 },
+  });
 
-  return (
-    <motion.div ref={ref} style={{ background }}>
-      <motion.div style={{ x: width }}>
-      Size: {width}x{height}
-    </motion.div>
-  );
+  // Create new motion value based on width motion value
+  const background = useTransform(width, [100, 300], ["#52cb9a", "#2d8a9a"]);
+
+  // Should only ever render once
+  const rRenders = React.useRef(0);
+  rRenders.current++;
+
+  return <motion.div ref={ref} style={{ background }} />;
 };
 ```
 
