@@ -109,14 +109,12 @@ function useMotionResizeObserver<T>(
         previous.current.height !== newHeight
       ) {
         const newSize = { width: newWidth, height: newHeight };
-        if (onResizeRef.current) {
-          onResizeRef.current(newSize);
-        } else {
-          previous.current.width = newWidth;
-          previous.current.height = newHeight;
-          width.set(newWidth);
-          height.set(newHeight);
-        }
+        if (onResizeRef.current) onResizeRef.current(newSize);
+
+        previous.current.width = newWidth;
+        previous.current.height = newHeight;
+        width.set(newWidth);
+        height.set(newHeight);
       }
     });
   }, []);
