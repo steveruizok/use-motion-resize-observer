@@ -8,7 +8,7 @@ Unlike `useMotionResizeObserver`, the hook will **not** trigger a re-render on a
 
 ## In Action
 
-[CodeSandbox Demo](https://codesandbox.io/s/nrp0w2r5z0)
+[CodeSandbox Demo](https://codesandbox.io/s/use-motion-resize-observer-basic-usage-cmfdi)
 
 ## Install
 
@@ -52,7 +52,7 @@ const { width, height } = useMotionResizeObserver({ ref });
 
 You can even reuse the same hook instance to measure different elements:
 
-[CodeSandbox Demo](https://codesandbox.io/s/use-resize-observer-reusing-refs-buftd)
+[CodeSandbox Demo](https://codesandbox.io/s/use-resize-observer-changing-measured-ref-or4uj)
 
 ## The "onResize" callback
 
@@ -113,7 +113,28 @@ It's possible to apply styles conditionally based on the width / height of an
 element using a CSS-in-JS solution, which is the basic idea behind
 container/element queries:
 
-[CodeSandbox Demo](https://codesandbox.io/s/use-resize-observer-container-query-with-css-in-js-iitxl)
+[CodeSandbox Demo](https://codesandbox.io/s/use-resize-observer-container-query-with-css-in-js-b8slq)
+
+...but this is much easier with `motion` elements from Framer Motion.
+
+```jsx
+const { ref, width, height } = useMotionResizeObserver();
+const background = useTransform(width, [100, 300], ["#52cb9a", "#2d8a9a"]);
+
+return <motion.div ref={ref} style={{ background }} />;
+```
+
+## Changing State
+
+The goal of Framer Motion is to allow for visual data to flow without triggering component re-renders by avoiding React's state/props. That said, if you _do_ want to change state, you can use the `onResize` callback.
+
+```js
+const { ref, width, height } = useMotionResizeObserver({
+  onResize: (size) => setSize(size),
+});
+```
+
+[CodeSandbox Demo](https://codesandbox.io/s/use-motion-resize-observer-changing-state-sg8qb)
 
 ## Transpilation / Polyfilling
 
@@ -131,6 +152,7 @@ import useMotionResizeObserver from "use-motion-resize-observer/polyfilled";
 
 ## Related
 
+- [@zeecoder/use-resize-observer](https://github.com/ZeeCoder/container-query)
 - [@zeecoder/container-query](https://github.com/ZeeCoder/container-query)
 - [@zeecoder/react-resize-observer](https://github.com/ZeeCoder/react-resize-observer)
 
