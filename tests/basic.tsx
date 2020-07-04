@@ -14,6 +14,7 @@ import {
   Observed,
   render,
   HandlerReceiver,
+  MotionSize,
   ObservedSize,
   MultiHandlerResolverComponentProps,
   ComponentHandler,
@@ -50,15 +51,15 @@ describe("Vanilla tests", () => {
     } = await render(Observed, { waitForFirstMeasurement: true });
 
     // Default render + first measurement
-    assertRenderCount(2);
+    assertRenderCount(1);
 
     await setAndAssertSize({ width: 100, height: 200 });
-    assertRenderCount(3);
+    assertRenderCount(1);
 
     setSize({ width: 321, height: 456 });
     await delay(50);
     assertSize({ width: 321, height: 456 });
-    assertRenderCount(4);
+    assertRenderCount(1);
   });
 
   it("should handle multiple instances", async () => {
@@ -99,13 +100,13 @@ describe("Vanilla tests", () => {
       handler2.setAndAssertSize({ width: 300, height: 400 }),
     ]);
 
-    handler1.assertRenderCount(2);
-    handler2.assertRenderCount(2);
+    handler1.assertRenderCount(1);
+    handler2.assertRenderCount(1);
 
     await handler2.setAndAssertSize({ width: 321, height: 456 });
 
-    handler1.assertRenderCount(2);
-    handler2.assertRenderCount(3);
+    handler1.assertRenderCount(1);
+    handler2.assertRenderCount(1);
 
     // Instance No. 1 should still be at the previous state.
     handler1.assertSize({ width: 100, height: 200 });
@@ -117,20 +118,24 @@ describe("Vanilla tests", () => {
     }) => {
       const ref = useRef(null);
       const { width, height } = useResizeObserver({ ref });
+      const motionSizeRef = useRef<MotionSize>({ width, height });
       const currentSizeRef = useRef<{
         width: number | undefined;
         height: number | undefined;
       }>({ width: undefined, height: undefined });
-      currentSizeRef.current.height = height;
-      currentSizeRef.current.width = width;
+
+      currentSizeRef.current.height = height.get();
+      currentSizeRef.current.width = width.get();
 
       useEffect(() => {
-        resolveHandler(createComponentHandler({ currentSizeRef }));
+        resolveHandler(
+          createComponentHandler({ currentSizeRef, motionSizeRef })
+        );
       }, []);
 
       return (
         <div ref={ref} style={{ width: 100, height: 200 }}>
-          {width}x{height}
+          {width.get()}x{height.get()}
         </div>
       );
     };
@@ -153,26 +158,47 @@ describe("Vanilla tests", () => {
       const ref1 = useRef<HTMLDivElement>(null);
       const ref2 = useRef<HTMLDivElement>(null);
       const [stateRef, setStateRef] = useState<RefObject<HTMLDivElement>>(ref1); // Measures ref1 first
-      const sizeRef = useRef(null);
+      const sizeRef = useRef<HTMLDivElement>(null);
       const { width, height } = useResizeObserver({ ref: stateRef });
+      const motionSizeRef = useRef<MotionSize>({ width, height });
       const currentSizeRef = useRef<ObservedSize>({
         width: undefined,
         height: undefined,
       });
-      currentSizeRef.current.width = width;
-      currentSizeRef.current.height = height;
+      currentSizeRef.current.width = width.get();
+      currentSizeRef.current.height = height.get();
+
+      React.useLayoutEffect(() => {
+        return width.onChange((v) => {
+          const text = sizeRef.current;
+          if (text) {
+            text.textContent = `${width.get()}x${height.get()}`;
+          }
+        });
+      });
+
+      React.useLayoutEffect(() => {
+        return height.onChange((v) => {
+          const text = sizeRef.current;
+          if (text) {
+            text.textContent = `${width.get()}x${height.get()}`;
+          }
+        });
+      });
 
       useEffect(() => {
         // Measures the second div on demand
         switchRefs = () => setStateRef(ref2);
 
-        resolveHandler(createComponentHandler({ currentSizeRef }));
+        resolveHandler(
+          createComponentHandler({ currentSizeRef, motionSizeRef })
+        );
       }, []);
 
       return (
         <>
           <div ref={sizeRef}>
-            {width}x{height}
+            {width.get()}x{height.get()}
           </div>
           <div ref={ref1} style={{ width: 100, height: 200 }} />
           <div ref={ref2} style={{ width: 150, height: 250 }} />
@@ -213,19 +239,19 @@ describe("Vanilla tests", () => {
 
     // Default render + first measurement
     await delay(50);
-    handler.assertRenderCount(2);
+    handler.assertRenderCount(1);
 
     handler.setSize({ width: 100, height: 102 });
     await delay(50);
     handler.assertSize({ width: 100, height: 102 });
-    handler.assertRenderCount(3);
+    handler.assertRenderCount(1);
 
     // Shouldn't trigger on subpixel values that are rounded to be the same as the
     // previous size
     handler.setSize({ width: 100.4, height: 102.4 });
     await delay(50);
     handler.assertSize({ width: 100, height: 102 });
-    handler.assertRenderCount(3);
+    handler.assertRenderCount(1);
   });
 
   it("should keep the same response instance between renders if nothing changed", async () => {
@@ -241,7 +267,7 @@ describe("Vanilla tests", () => {
       const previousResponseRef = useRef<
         | ({
             ref: RefObject<HTMLElement>;
-          } & ObservedSize)
+          } & MotionSize)
         | null
       >(null);
       const response = useResizeObserver<HTMLDivElement>();
@@ -288,17 +314,40 @@ describe("Vanilla tests", () => {
       const { width, height } = useResizeObserver({
         ref: {} as RefObject<HTMLDivElement>,
       });
+      const motionSizeRef = useRef<MotionSize>({ width, height });
       const currentSizeRef = useRef<ObservedSize>({} as ObservedSize);
-      currentSizeRef.current.width = width;
-      currentSizeRef.current.height = height;
+      currentSizeRef.current.width = width.get();
+      currentSizeRef.current.height = height.get();
 
       useEffect(() => {
-        resolveHandler(createComponentHandler({ currentSizeRef }));
+        resolveHandler(
+          createComponentHandler({ currentSizeRef, motionSizeRef })
+        );
       }, []);
 
+      const ref = React.createRef<HTMLDivElement>();
+
+      React.useLayoutEffect(() => {
+        return width.onChange((v) => {
+          const text = ref.current;
+          if (text) {
+            text.textContent = `${width.get()}x${height.get()}`;
+          }
+        });
+      });
+
+      React.useLayoutEffect(() => {
+        return height.onChange((v) => {
+          const text = ref.current;
+          if (text) {
+            text.textContent = `${width.get()}x${height.get()}`;
+          }
+        });
+      });
+
       return (
-        <div>
-          {width}x{height}
+        <div ref={ref}>
+          {width.get()}x{height.get()}
         </div>
       );
     };
@@ -318,17 +367,39 @@ describe("Vanilla tests", () => {
       const { ref, width, height } = useResizeObserverPolyfilled<
         HTMLDivElement
       >();
+      const motionSizeRef = useRef<MotionSize>({ width, height });
       const currentSizeRef = useRef<ObservedSize>({} as ObservedSize);
-      currentSizeRef.current.width = width;
-      currentSizeRef.current.height = height;
+
+      currentSizeRef.current.width = width.get();
+      currentSizeRef.current.height = height.get();
 
       useEffect(() => {
-        resolveHandler(createComponentHandler({ currentSizeRef }));
+        resolveHandler(
+          createComponentHandler({ currentSizeRef, motionSizeRef })
+        );
       }, []);
+
+      React.useLayoutEffect(() => {
+        return width.onChange((v) => {
+          const text = ref.current;
+          if (text) {
+            text.textContent = `${width.get()}x${height.get()}`;
+          }
+        });
+      });
+
+      React.useLayoutEffect(() => {
+        return height.onChange((v) => {
+          const text = ref.current;
+          if (text) {
+            text.textContent = `${width.get()}x${height.get()}`;
+          }
+        });
+      });
 
       return (
         <div style={{ width: 50, height: 40 }} ref={ref}>
-          {width}x{height}
+          {width.get()}x{height.get()}
         </div>
       );
     };

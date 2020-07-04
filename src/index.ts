@@ -7,30 +7,49 @@ import {
   MutableRefObject,
 } from "react";
 
+import { MotionValue, useMotionValue } from "framer-motion";
+
 type ObservedSize = {
   width: number | undefined;
   height: number | undefined;
 };
 
+type MotionSize = {
+  width: MotionValue<number>;
+  height: MotionValue<number>;
+};
+
 type ResizeHandler = (size: ObservedSize) => void;
 
 // Type definition when the user wants the hook to provide the ref with the given type.
-function useResizeObserver<T extends HTMLElement>(opts?: {
+function useMotionResizeObserver<T extends HTMLElement>(opts?: {
   onResize?: ResizeHandler;
-}): { ref: RefObject<T> } & ObservedSize;
+  initial?: {
+    width: number;
+    height: number;
+  };
+}): { ref: RefObject<T> } & MotionSize;
 
 // Type definition when the hook just passes through the user provided ref.
-function useResizeObserver<T extends HTMLElement>(opts?: {
+function useMotionResizeObserver<T extends HTMLElement>(opts?: {
   ref: RefObject<T>;
   onResize?: ResizeHandler;
-}): { ref: RefObject<T> } & ObservedSize;
+  initial?: {
+    width: number;
+    height: number;
+  };
+}): { ref: RefObject<T> } & MotionSize;
 
-function useResizeObserver<T>(
+function useMotionResizeObserver<T>(
   opts: {
     ref?: RefObject<T>;
     onResize?: ResizeHandler;
+    initial?: {
+      width: number;
+      height: number;
+    };
   } = {}
-): { ref: RefObject<T> } & ObservedSize {
+): { ref: RefObject<T> } & MotionSize {
   // `defaultRef` Has to be non-conditionally declared here whether or not it'll
   // be used as that's how hooks work.
   // @see https://reactjs.org/docs/hooks-rules.html#explanation
@@ -49,13 +68,9 @@ function useResizeObserver<T>(
   >;
 
   const ref = opts.ref || defaultRef;
-  const [size, setSize] = useState<{
-    width?: number;
-    height?: number;
-  }>({
-    width: undefined,
-    height: undefined,
-  });
+
+  const width = useMotionValue<number>(opts.initial ? opts.initial.width : 0);
+  const height = useMotionValue<number>(opts.initial ? opts.initial.height : 0);
 
   // Using a ref to track the previous width / height to avoid unnecessary renders
   const previous: {
@@ -99,7 +114,8 @@ function useResizeObserver<T>(
         } else {
           previous.current.width = newWidth;
           previous.current.height = newHeight;
-          setSize(newSize);
+          width.set(newWidth);
+          height.set(newHeight);
         }
       }
     });
@@ -121,11 +137,7 @@ function useResizeObserver<T>(
     return () => resizeObserverRef.current.unobserve(element);
   }, [ref]);
 
-  return useMemo(() => ({ ref, width: size.width, height: size.height }), [
-    ref,
-    size ? size.width : null,
-    size ? size.height : null,
-  ]);
+  return useMemo(() => ({ ref, width, height }), [ref, width, height]);
 }
 
-export default useResizeObserver;
+export default useMotionResizeObserver;

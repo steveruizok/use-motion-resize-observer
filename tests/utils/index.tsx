@@ -1,11 +1,17 @@
 import React, { useEffect, useRef, RefObject, FunctionComponent } from "react";
 import ReactDOM from "react-dom";
-import useResizeObserver from "../..";
+import useMotionResizeObserver from "../..";
 import delay from "delay";
+import { MotionValue, motion } from "framer-motion";
 
 export type Size = {
   width: number;
   height: number;
+};
+
+export type MotionSize = {
+  width: MotionValue<number>;
+  height: MotionValue<number>;
 };
 
 export type ObservedSize = {
@@ -30,26 +36,32 @@ export type ComponentHandler = BaseComponentHandler &
   CountingComponentHandler;
 
 export function createComponentHandler(opts: {
+  motionSizeRef: RefObject<MotionSize>;
   currentSizeRef: RefObject<ObservedSize>;
 }): BaseComponentHandler;
 export function createComponentHandler(opts: {
+  motionSizeRef: RefObject<MotionSize>;
   currentSizeRef: RefObject<ObservedSize>;
   measuredElementRef: RefObject<HTMLElement>;
 }): BaseComponentHandler & SizingComponentHandler;
 export function createComponentHandler(opts: {
+  motionSizeRef: RefObject<MotionSize>;
   currentSizeRef: RefObject<ObservedSize>;
   renderCountRef: RefObject<number>;
 }): BaseComponentHandler & CountingComponentHandler;
 export function createComponentHandler(opts: {
+  motionSizeRef: RefObject<MotionSize>;
   currentSizeRef: RefObject<ObservedSize>;
   measuredElementRef: RefObject<HTMLElement>;
   renderCountRef: RefObject<number>;
 }): ComponentHandler;
 export function createComponentHandler({
   currentSizeRef,
+  motionSizeRef,
   measuredElementRef,
   renderCountRef,
 }: {
+  motionSizeRef: RefObject<MotionSize>;
   currentSizeRef: RefObject<ObservedSize>;
   measuredElementRef?: RefObject<HTMLElement>;
   renderCountRef?: RefObject<number>;
@@ -60,11 +72,15 @@ export function createComponentHandler({
         throw new Error(`currentSizeRef.current is not set.`);
       }
 
-      expect(currentSizeRef.current.width).toBe(width);
-      expect(currentSizeRef.current.height).toBe(height);
+      if (motionSizeRef.current === null) {
+        throw new Error(`motionSizeRef.current is not set.`);
+      }
+
+      expect(motionSizeRef.current.width.get()).toBe(width || 0);
+      expect(motionSizeRef.current.height.get()).toBe(height || 0);
     },
     assertDefaultSize: function () {
-      return this.assertSize({ width: undefined, height: undefined });
+      return this.assertSize({ width: 0, height: 0 });
     },
   } as ComponentHandler;
 
@@ -109,18 +125,56 @@ export const Observed: FunctionComponent<
   }
 > = ({ resolveHandler, defaultWidth, defaultHeight, onResize, ...props }) => {
   const renderCountRef = useRef(0);
-  const {
-    ref: measuredElementRef,
-    width = defaultWidth,
-    height = defaultHeight,
-  } = useResizeObserver<HTMLDivElement>({ onResize });
+  const hasDefaults = defaultWidth || defaultHeight;
+  const { ref: measuredElementRef, width, height } = useMotionResizeObserver<
+    HTMLDivElement
+  >({
+    onResize,
+    ...(hasDefaults
+      ? {
+          initial: {
+            width: defaultWidth as number,
+            height: defaultHeight as number,
+          },
+        }
+      : {}),
+  });
   const currentSizeRef = useRef<ObservedSize>({
     width: undefined,
     height: undefined,
   });
-  currentSizeRef.current.width = width;
-  currentSizeRef.current.height = height;
+
+  const motionSizeRef = useRef<MotionSize>({ width, height });
+
+  currentSizeRef.current.width = width.get();
+  currentSizeRef.current.height = height.get();
   renderCountRef.current++;
+
+  React.useLayoutEffect(() => {
+    return width.onChange((v) => {
+      const text = rTextContent.current;
+      if (text) {
+        text.innerText = `${v}x${height.get()}`;
+      }
+      currentSizeRef.current = {
+        ...currentSizeRef.current,
+        width: v,
+      };
+    });
+  });
+
+  React.useLayoutEffect(() => {
+    return height.onChange((v) => {
+      const text = rTextContent.current;
+      if (text) {
+        text.innerText = `${width.get()}x${v}`;
+      }
+      currentSizeRef.current = {
+        ...currentSizeRef.current,
+        height: v,
+      };
+    });
+  });
 
   useEffect(() => {
     if (!resolveHandler) {
@@ -129,6 +183,7 @@ export const Observed: FunctionComponent<
 
     resolveHandler(
       createComponentHandler({
+        motionSizeRef,
         currentSizeRef,
         measuredElementRef,
         renderCountRef,
@@ -136,14 +191,16 @@ export const Observed: FunctionComponent<
     );
   }, []);
 
+  const rTextContent = React.useRef<HTMLSpanElement>(null);
+
   return (
-    <div
+    <motion.div
       {...props}
       ref={measuredElementRef}
       style={{
         position: "absolute",
-        width: "100%",
-        height: "100%",
+        width: undefined,
+        height: undefined,
         left: 0,
         top: 0,
         background: "grey",
@@ -151,13 +208,13 @@ export const Observed: FunctionComponent<
         fontWeight: "bold",
       }}
     >
-      <span>
-        {width}x{height}
+      <span ref={rTextContent}>
+        {width.get()}x{height.get()}
       </span>
       <div>
         Render Count: <span>{renderCountRef.current}</span>
       </div>
-    </div>
+    </motion.div>
   );
 };
 

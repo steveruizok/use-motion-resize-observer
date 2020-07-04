@@ -1,6 +1,6 @@
 // Tests written with react testing library
 import React, { useRef, useEffect, useState } from "react";
-import useResizeObserver from "../";
+import useMotionResizeObserver from "../";
 import { render, cleanup, RenderResult } from "@testing-library/react";
 import { ObservedSize } from "./utils";
 import delay from "delay";
@@ -27,7 +27,7 @@ const Test = ({ onResize, resolveController }: TestProps) => {
   const [, setRenderTrigger] = useState(false);
   const [useExplicitRef, setUseExplicitRef] = useState(false);
   const explicitRef = useRef<HTMLDivElement>(null);
-  const { ref, width = 0, height = 0 } = useResizeObserver<HTMLDivElement>({
+  const { ref, width, height } = useMotionResizeObserver<HTMLDivElement>({
     // We intentionally create a new function instance here if onResize is given.
     // The hook is supposed to handle it and not recreate ResizeObserver instances on each render for example.
     onResize: onResize ? (size: ObservedSize) => onResize(size) : undefined,
@@ -40,8 +40,16 @@ const Test = ({ onResize, resolveController }: TestProps) => {
   });
 
   controllerStateRef.current.renderCount++;
-  controllerStateRef.current.width = width;
-  controllerStateRef.current.height = height;
+  controllerStateRef.current.width = width.get();
+  controllerStateRef.current.height = height.get();
+
+  React.useLayoutEffect(() =>
+    width.onChange((v) => (controllerStateRef.current.width = v))
+  );
+
+  React.useLayoutEffect(() =>
+    height.onChange((v) => (controllerStateRef.current.height = v))
+  );
 
   useEffect(() => {
     resolveController({
@@ -54,8 +62,8 @@ const Test = ({ onResize, resolveController }: TestProps) => {
         ref.current.style.height = `${height}px`;
       },
       getRenderCount: () => controllerStateRef.current.renderCount,
-      getWidth: () => controllerStateRef.current.width,
-      getHeight: () => controllerStateRef.current.height,
+      getWidth: () => width.get(),
+      getHeight: () => height.get(),
       triggerRender: () => setRenderTrigger((value) => !value),
       switchToExplicitRef: () => setUseExplicitRef(true),
     });
@@ -93,7 +101,7 @@ describe("Testing Lib: Basics", () => {
     await awaitNextFrame();
     expect(controller.getWidth()).toBe(100);
     expect(controller.getHeight()).toBe(200);
-    expect(controller.getRenderCount()).toBe(2);
+    expect(controller.getRenderCount()).toBe(1);
   });
 });
 
