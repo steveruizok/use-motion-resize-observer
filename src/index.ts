@@ -1,6 +1,5 @@
 import {
-  useEffect,
-  useState,
+  useLayoutEffect,
   useRef,
   useMemo,
   RefObject,
@@ -83,7 +82,7 @@ function useMotionResizeObserver<T>(
     height: undefined,
   });
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (resizeObserverRef.current) {
       return;
     }
@@ -93,8 +92,7 @@ function useMotionResizeObserver<T>(
         return;
       }
 
-      // Since we only observe the one element, we don't need to loop over the
-      // array
+      // Since we only observe the one element, we don't need to loop
       if (!entries.length) {
         return;
       }
@@ -109,17 +107,18 @@ function useMotionResizeObserver<T>(
         previous.current.height !== newHeight
       ) {
         const newSize = { width: newWidth, height: newHeight };
-        if (onResizeRef.current) onResizeRef.current(newSize);
-
+        if (onResizeRef.current) {
+          onResizeRef.current(newSize);
+        }
         previous.current.width = newWidth;
         previous.current.height = newHeight;
         width.set(newWidth);
         height.set(newHeight);
       }
     });
-  }, []);
+  }, [width, height, resizeObserverRef]);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (
       typeof ref !== "object" ||
       ref === null ||

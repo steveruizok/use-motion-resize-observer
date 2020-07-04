@@ -1,5 +1,9 @@
 # CHANGELOG
 
+## 1.0.2
+
+- One more test.
+
 ## 1.0.1
 
 - Fixes bug with onResize callback.
