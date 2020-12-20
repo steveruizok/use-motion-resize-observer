@@ -1,5 +1,9 @@
 # CHANGELOG
 
+## 2.0.0
+
+Upgraded to Framer Motion 3.
+
 ## 1.0.2
 
 - One more test.
